@@ -64,7 +64,7 @@ This preview requires bulk or both mode. For future-only mode use the Lidarr con
 
 ## Manual setup instead
 
-If you prefer not to use the wizard, copy the extracted files directly into the persistent AppData `scripts/soulsync` folder (inside the container or through its host-mounted config directory). Make sure they are owned by the Lidarr service user. Follow [README manual setup](README.md#b-manual-setup-no-wizard) to configure `config.env` and add the Custom Script connection. Use the **container's** absolute script path in Lidarr, not the host's mount path.
+If you prefer not to use the wizard, copy the extracted files directly into the persistent AppData `scripts/soulsync` folder (inside the container or through its host-mounted config directory). Make sure they are owned by the Lidarr service user. Follow [manual installation guide](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/blob/main/MANUAL.md) to configure `config.env` and add the Custom Script connection. Use the **container's** absolute script path in Lidarr, not the host's mount path.
 
 ## Installing Python
 
