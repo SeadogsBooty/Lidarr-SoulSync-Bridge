@@ -1,0 +1,12 @@
+# Changelog
+
+## 1.1 — Initial public release
+
+- Guided and manual installation; optional automatic Lidarr Artist Add connection.
+- Bulk preview, selective import, single-artist retries and activity history.
+- Provider-aware identity matching, aliases, direct lookups for supported catalogs, duplicate protection and metadata retry handling.
+- 94 automated regression tests; native Linux, Docker and Deezer live validation. Non-Deezer writes remain awaiting live validation.
+- Release audit fix: reject control characters and Unicode line separators before saving configuration, including remotely supplied profile IDs; matching behavior is unchanged.
+- Four configuration-safety regression tests bring the release suite to 98 tests. Added direct ZIP download, explicit manual copy/permission commands, broader private-file exclusions and LF line endings.
+
+Version cadence: 1.1.1 for fixes, 1.2 for the next feature release.

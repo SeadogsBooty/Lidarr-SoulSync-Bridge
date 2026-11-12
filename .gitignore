@@ -1,0 +1,35 @@
+# Private runtime data and credentials
+config.env
+.env
+.env.*
+*.env
+!config.env.example
+activity.jsonl
+bridge.lock
+*.log
+*.db
+*.sqlite*
+config.xml
+backup*/
+__pycache__/
+*.py[cod]
+.venv/
+*.zip
+.DS_Store
+# Local backups, editor files, runtime exports and credentials
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+*.swp
+*~
+backups/
+.cache/
+.pytest_cache/
+*.jsonl
+*.sqlite-journal
+*.pem
+*.key
+credentials*
+secrets*
