@@ -27,77 +27,135 @@
 
 # Lidarr SoulSync Bridge v1.1
 
-Import Lidarr artists into your SoulSync Watchlist and automatically sync new artists. Existing Watchlist entries are preserved. Matching follows SoulSync's search provider and uses MusicBrainz to resolve identities.
+Import artists from Lidarr into your SoulSync Watchlist and automatically sync new artists. Existing Watchlist entries are left alone.
 
-## 1. Requirements
+**[Download v1.1 ZIP](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1/Lidarr-SoulSync-Bridge-v1.1.zip)**
 
-- Lidarr and SoulSync running; both must be reachable from **Lidarr's own Linux host or container**.
-- Python 3.8+ in that environment (standard library only; no `pip install`). Check `python3 --version`. On Debian/Ubuntu: `sudo apt-get install python3`.
-- Lidarr API key: **Settings → General → Security**. SoulSync API key: **Settings → SoulSync API → Generate API Key** (labels may vary). Allow profile listing, artist search, Watchlist read/write. Keep both keys private.
-- Outbound HTTPS to MusicBrainz and supported public metadata APIs. Pause SoulSync auto-downloads while testing, preferably in a separate Test profile.
+## 1. Before you start
 
-## 2. Download and install (choose A or B)
+- Lidarr and SoulSync must be running.
+- Python 3.8+ must be installed **where Lidarr runs**. Check with `python3 --version`. No pip packages required.
+- Get your Lidarr API key from **Settings → General → Security**.
+- Get your SoulSync API key from **Settings → SoulSync API → Generate API Key**. Allow profile listing, artist search and Watchlist read/write.
 
-Download **[Lidarr-SoulSync-Bridge-v1.1.zip](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1/Lidarr-SoulSync-Bridge-v1.1.zip)** from the [v1.1 release](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/tag/v1.1) and extract it. No Git or additional Python packages are needed. Run commands as the Lidarr service account, not as an unrelated user.
+Use a SoulSync Test profile and pause automatic downloads while trying the bridge. Both applications and outbound metadata APIs must be reachable from Lidarr.
+
+**Running Lidarr in Docker?** Start with [Docker setup](DOCKER.md) to get the files and Python inside your Lidarr container, then return to step 2.
+
+## 2. Install the bridge
+
+Choose **A or B**, not both.
 
 ### A. Guided setup (recommended)
 
-In the extracted folder run:
+Download and extract the ZIP on the Linux machine running Lidarr. Open a terminal in the extracted folder (the folder containing `setup.py`). Run as the user that runs Lidarr. For example, on a native Linux install where the service user is `lidarr`:
 
 ```sh
-python3 setup.py
+sudo -u lidarr -H python3 setup.py
 ```
 
-Enter the two server URLs and API keys, choose your SoulSync profile, then select **existing artists**, **future artists**, or **both**. Choose monitored/all and an optional Lidarr tag. Confirm saving; for future sync, confirm creation of the Lidarr connection. The wizard finds Lidarr's AppData and installs to `scripts/soulsync` inside it. Use the installed path it prints for all later commands.
+If you are already logged in as the Lidarr service user (including inside Docker), simply run `python3 setup.py`. The user must be able to read the extracted files and write to Lidarr's AppData. On native Linux, if Python is missing on Debian/Ubuntu, install it with `sudo apt-get install python3`.
+
+The wizard asks for:
+
+- Lidarr URL and API key.
+- SoulSync URL and API key, then the Watchlist profile.
+- Existing artists, future artists, or both. Choose **3 = Both** if you want to import your library and automatically sync new artists.
+- Which artists to sync. Choose **1 = Monitored artists only** to start. An optional Lidarr tag can further restrict syncing.
+
+Confirm saving by typing `yes`. If using future sync, also confirm creating the Lidarr connection.
+
+**Done!** The wizard installs the files in Lidarr's AppData directory under `scripts/soulsync` and prints the exact installed path. It does not import any artists. Continue to step 3.
 
 ### B. Manual setup (no wizard)
 
-1. In Lidarr **System → Status**, find the AppData directory. From the extracted folder, run the commands below as the Lidarr service account. Replace `/path/to/lidarr-appdata` with that directory (often `/var/lib/lidarr` or `/config` in Docker). Stop if the destination already exists; these commands deliberately refuse to replace it.
+**1. Put the files in Lidarr.** In Lidarr, open **System → Status** and find its AppData directory. Create a `scripts/soulsync` folder there and copy the extracted ZIP files into it. Use your file manager or run the following from the extracted folder as the Lidarr service user:
 
-   ```sh
-   APPDATA='/path/to/lidarr-appdata'
-   (umask 077; mkdir -p "$APPDATA/scripts" && mkdir "$APPDATA/scripts/soulsync" && cp -R . "$APPDATA/scripts/soulsync/")
-   cd "$APPDATA/scripts/soulsync"
-   chmod 700 .
-   ```
-2. Open a shell in that folder. Run:
+```sh
+APPDATA="/path/to/lidarr-appdata"
+DEST="$APPDATA/scripts/soulsync"
+(umask 077; mkdir -p "$APPDATA/scripts" && mkdir "$DEST" && cp -R . "$DEST/")
+```
 
-   ```sh
-   umask 077
-   cp -n config.env.example config.env
-   chmod 600 config.env
-   chmod 700 lidarr-to-soulsync.py
-   nano config.env  # or vi / your preferred editor
-   ```
+Replace the AppData example with the path Lidarr reports. Common paths are `/var/lib/lidarr` (Linux) and `/config` (Docker). If the folder already exists, stop and review it; do not overwrite an existing configuration.
 
-   Set `LIDARR_URL`, `LIDARR_API_KEY`, `SOULSYNC_URL`, `SOULSYNC_API_KEY` and your intended `SOULSYNC_PROFILE_ID`. To list profile names and IDs after setting the URLs/keys, run `python3 -c 'import setup; print(setup.bridge.profiles(setup.bridge.config()))'`. Set `SYNC_MODE=both` (or `bulk` / `future`), `ARTIST_SCOPE=monitored` (or `all`), and optionally `REQUIRE_TAG=your-existing-tag`. Save the file. Never publish `config.env`.
-3. For automatic sync, in Lidarr **Settings → Connect → + → Custom Script**, name it `SoulSync`, enable **On Artist Add** only, set **Path** to the absolute installed `lidarr-to-soulsync.py` path, leave arguments blank if offered, and leave Lidarr connection tags empty (the bridge applies its own optional tag filter). Click **Test**, then **Save**. Alternatively run `python3 setup.py --connect` and confirm. Bulk-only mode needs no connection.
+**2. Configure the bridge.** Open a terminal in the new `scripts/soulsync` folder (or run `cd "$DEST"` if you used the commands above) and run:
 
-### Docker
+```sh
+umask 077
+cp -n config.env.example config.env
+chmod 600 config.env
+chmod 700 lidarr-to-soulsync.py
+nano config.env
+```
 
-Use the same instructions **inside the Lidarr container**, not the SoulSync container. For example, extract the ZIP into a staging folder in the persistent Lidarr config mount (`/config/bridge-staging`), then run `docker exec -it -u <lidarr-service-uid> <lidarr-container> python3 /config/bridge-staging/setup.py` for guided setup. For manual setup copy files into the mounted `/config/scripts/soulsync` directory and enter the container with `docker exec -it -u <lidarr-service-uid> <lidarr-container> sh`. Replace placeholders with your container and service UID. Python must be in the image; if missing, use a persistent custom image installing Python (see [Docker prerequisites](DOCKER.md)). Use network-reachable addresses: `localhost` means the current container. The `/config` mount preserves the installation across container recreation.
+Enter your own values (the URLs below are examples):
+
+```ini
+LIDARR_URL=http://localhost:8686
+LIDARR_API_KEY=YOUR_LIDARR_KEY
+SOULSYNC_URL=http://your-soulsync-server:8008
+SOULSYNC_API_KEY=YOUR_SOULSYNC_KEY
+SOULSYNC_PROFILE_ID=YOUR_PROFILE_ID
+SYNC_MODE=both
+ARTIST_SCOPE=monitored
+REQUIRE_TAG=
+```
+
+To find the profile ID, save your URLs and keys first, then run:
+
+```sh
+python3 -c 'import setup; print([(p["id"], p["name"]) for p in setup.bridge.profiles(setup.bridge.config())])'
+```
+
+Enter the ID of the desired profile in `config.env`. Use `SYNC_MODE=bulk` for existing artists only or `future` for new artists only. Leave `REQUIRE_TAG` empty unless you want to sync only artists with a specific Lidarr tag.
+
+Keep the configuration private. The Lidarr service user must own or have access to the folder and files.
+
+**3. Enable automatic sync (optional).** In Lidarr, go to **Settings → Connect → + → Custom Script**:
+
+| Setting | Value |
+| --- | --- |
+| Name | SoulSync |
+| On Artist Add | Enabled |
+| Other triggers | Disabled |
+| Path | Full installed path to `lidarr-to-soulsync.py` |
+| Arguments / Tags | Leave blank |
+
+For example, the path may be `/var/lib/lidarr/scripts/soulsync/lidarr-to-soulsync.py` or `/config/scripts/soulsync/lidarr-to-soulsync.py`. Click **Test**, then **Save**. Skip this connection if you only want to import existing artists.
 
 ## 3. Use the bridge
 
-Run from the installed `scripts/soulsync` folder (bulk/both mode for bulk commands):
+Open a terminal in the **installed** `scripts/soulsync` folder as the Lidarr service user. Use the path printed by guided setup, or the folder you created manually. If you chose future-only mode, skip the bulk commands and test by adding a new artist in Lidarr.
+
+**Preview your first five artists (nothing is added):**
 
 ```sh
-python3 lidarr-to-soulsync.py --bulk --limit 5  # Preview five; no writes
-python3 lidarr-to-soulsync.py --bulk          # Preview all eligible artists
-python3 lidarr-to-soulsync.py --bulk --select # Choose artists, then confirm
+python3 lidarr-to-soulsync.py --bulk --limit 5
 ```
 
-For `--select`, enter comma-separated numbers and type `yes` to add only those artists. Enter alone cancels. When satisfied, `python3 lidarr-to-soulsync.py --bulk --apply` adds all eligible resolved artists. In future/both mode, adding a new eligible artist to Lidarr triggers the Custom Script automatically. Test with one desired artist first.
+**Preview all and choose which artists to import:**
 
-**Connection check:** For future/both mode, `env Lidarr_EventType=Test python3 lidarr-to-soulsync.py` checks connectivity without adding artists. Bulk-only users can use the five-artist preview above.
+```sh
+python3 lidarr-to-soulsync.py --bulk --select
+```
 
-**Recovery:** `python3 lidarr-to-soulsync.py --review` shows unresolved recorded attempts. Use `--artist-name "Artist Name"` to preview one artist, add `--apply` to retry, or use `--retry-all` (add `--apply` to write). `--artist 123` selects a Lidarr ID; `--provider-id deezer:456` selects a manually verified candidate for a single artist. Use `--help` for all options. Exit code 2 means review needed; 1 means error. Preview reviews are not recorded; actual attempts are recorded privately in `activity.jsonl`.
+Enter the numbers of the artists you want, separated by commas, then type `yes`. Press Enter without selecting anything to cancel.
 
-## Notes
+**Import all eligible artists:** preview first with `python3 lidarr-to-soulsync.py --bulk`, then run:
 
-- No automatic deletion or modification of existing Watchlist entries. Additions use SoulSync defaults. Ambiguous identities may require review; no automatic provider switching. Some exact-name matches lack independent identity evidence; verify proposed additions before applying.
-- Deezer writes and cross-provider recognition are live-tested; Spotify, MusicBrainz, iTunes, Discogs and Amazon write paths have automated tests but await live provider-specific validation. Direct-ID lookup is available for Deezer, iTunes and MusicBrainz only. Other providers use SoulSync search and identity links. iTunes lookup uses the US storefront by default.
-- Validation: 94 original tests plus 4 configuration-safety regressions (98 total). CI runs the suite on Linux, including the minimum Python 3.8. Public-release validation uses mocks and temporary fixtures, without contacting production instances.
-- Native Linux and a Docker installation have been tested. Image-specific dependency setup varies. Never run simultaneous imports from different bridge installations. Existing installs: back up and replace the packaged Python/README files, preserve `config.env`, `activity.jsonl`, ownership and Lidarr connection.
+```sh
+python3 lidarr-to-soulsync.py --bulk --apply
+```
 
-Independent community project; not an official Lidarr or SoulSync integration. [MIT license](LICENSE).
+Bulk commands require bulk or both mode. If you enabled future sync, add a new eligible artist in Lidarr to test it. The Custom Script runs automatically.
+
+## Help
+
+- [Docker setup](DOCKER.md) — install Python and run the wizard inside Lidarr.
+- `python3 lidarr-to-soulsync.py --review` — see unresolved recorded attempts.
+- `python3 lidarr-to-soulsync.py --help` — all commands, including single-artist and retry options.
+
+The bridge leaves ambiguous artists for review and never automatically deletes existing Watchlist entries. Review proposed additions before applying. Deezer writes have been live-tested; other supported provider writes have automated coverage but await live validation. See [release notes](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/tag/v1.1) for details and [changelog](CHANGELOG.md) for updates.
+
+Independent community project. [MIT license](LICENSE).
