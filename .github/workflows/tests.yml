@@ -4,10 +4,16 @@ permissions:
   contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python: ['3.8', '3.11', '3.13', '3.14']
+        include:
+          # Python 3.8 builds are unavailable on newer Ubuntu runner images.
+          - {python: '3.8', os: ubuntu-22.04}
+          - {python: '3.11', os: ubuntu-latest}
+          - {python: '3.13', os: ubuntu-latest}
+          - {python: '3.14', os: ubuntu-latest}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
