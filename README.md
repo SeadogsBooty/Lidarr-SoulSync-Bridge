@@ -25,52 +25,130 @@
 # ==============================================================================
 ```
 
-# Lidarr SoulSync Bridge v1.1.1
+# Lidarr SoulSync Bridge
 
-Import existing Lidarr artists into SoulSync, automatically sync future additions, or both. Existing Watchlist entries stay unchanged.
+Keep your Lidarr artists synchronized with your SoulSync Watchlist.
 
-## 1. Download
+**Use Lidarr to manage your artists and SoulSync to download your music.**
 
-**[Download v1.1.1 ZIP](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1.1/Lidarr-SoulSync-Bridge-v1.1.1.zip)** and extract it. You need Python 3.8+ on Lidarr's Linux host, running Lidarr/SoulSync, API keys and network access to both apps and public metadata services. No pip packages.
+## What does it do?
 
-Get the Lidarr key from **Settings → General → Security**; get the SoulSync key from **Settings → SoulSync API**, allowing profile listing, search and Watchlist read/write. **Docker:** follow [DOCKER.md](DOCKER.md); run inside the Lidarr container.
+- Import your existing Lidarr artists into SoulSync.
+- Automatically add new Lidarr artists to SoulSync.
+- Prevent duplicate artists from being added to your Watchlist.
+- Leave your existing SoulSync Watchlist entries untouched.
 
-> **Important — let SoulSync handle downloads:** If SoulSync will manage your music downloads, disable Lidarr's downloading automation before using the bridge. In Lidarr, go to **Settings → Download Clients** and disable its download clients (or otherwise prevent Lidarr from sending downloads). This avoids duplicate downloads, competing imports and conflicts in your music library. Keep artist monitoring enabled if using the bridge's monitored-only mode, and leave the SoulSync Custom Script connection enabled for future sync. If you still use Lidarr to download other music, use separate libraries/workflows so the two apps do not manage the same files.
+## Getting Started
 
-## 2. Run setup
+### 1. Before You Begin
 
-In the extracted folder, as the Lidarr service user:
+You will need:
 
-```sh
+- Lidarr and SoulSync running.
+- Python 3.8 or newer installed where Lidarr runs.
+- Your Lidarr and SoulSync API keys.
+
+**Where to find your API keys:**
+
+| Application | Location |
+|---|---|
+| Lidarr | Settings → General → Security |
+| SoulSync | Settings → SoulSync API |
+
+**IMPORTANT:** If SoulSync will manage your music downloads, disable Lidarr's download clients and downloading automations before continuing. Leave artist monitoring enabled. This prevents both applications from downloading and managing the same music.
+
+### 2. Download & Run Setup
+
+[**Download the latest release**](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/latest)
+
+Extract the ZIP on the machine running Lidarr.
+
+Open a terminal in the extracted folder as the Lidarr service user and run:
+
+```bash
 python3 setup.py
 ```
 
-Answer these prompts in order. Enter accepts a displayed default; API keys are hidden.
+**Using Docker?** Follow the [Docker Setup Guide](DOCKER.md) to run setup inside your Lidarr container.
 
-| Prompt | Answer / effect |
-| --- | --- |
-| Lidarr address | Your URL; default `http://localhost:8686` |
-| Lidarr API key (hidden) | Your Lidarr key |
-| SoulSync address | Your URL; default `http://localhost:8008` (not localhost for a separate container) |
-| SoulSync API key (hidden) | Your SoulSync key |
-| Choose profile by menu number | Desired profile number; only shown if multiple profiles exist |
-| Choose 1, 2 or 3 | **1** existing artists only (default); **2** future artists only; **3** both |
-| Choose 1 or 2 | **1** monitored artists only (default); **2** all, including unmonitored |
-| Restrict to a Lidarr tag? | `no` (default), or `yes` |
-| Required tag | Existing tag name; only asked after `yes` |
-| Save configuration? | Type `yes` to install; Enter/anything else cancels setup |
-| Enter all, comma-separated numbers, or Enter to cancel | Modes **1/3**, after preview: `all`, numbers such as `1,3`, or Enter to skip |
-| Type yes to add these artists | Modes **1/3**, after selection: `yes` imports; anything else cancels import |
-| Create and test the SoulSync connection in Lidarr? | Modes **2/3**: `yes` tests and creates Artist Add automation; Enter/anything else leaves it disabled |
+### 3. Follow the Setup Wizard
 
-**1 — Existing only:** preview → select → confirm → import. No Lidarr connection.
+The wizard will ask for your Lidarr and SoulSync addresses, API keys, and which SoulSync profile you want to use.
 
-**2 — Future only:** confirm → test/create connection. No initial import. Add artists in Lidarr normally afterward.
+Next, choose how you want the bridge to work.
 
-**3 — Both:** initial preview/selection/confirmed import, then confirmed connection setup. No extra commands or open terminal needed after successful completion. Skipping the import still offers future sync.
+**What would you like to do?**
 
-Unresolved identities are skipped and reported for review. If nothing can be added, no import confirmation appears. Adding artists may trigger SoulSync downloads; use a Test profile and pause downloads when testing.
+| Option | Description |
+|---|---|
+| 1 | Import your existing Lidarr artists into SoulSync. |
+| 2 | Automatically sync new artists added to Lidarr. |
+| 3 | Import existing artists AND automatically sync new artists. |
 
-[Manual installation, later imports and recovery](MANUAL.md) · [Docker setup](DOCKER.md) · [Release notes](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/tag/v1.1.1)
+**Recommended: Option 3** if you want to migrate your existing library and keep it synchronized going forward.
 
-Independent community project. [MIT license](LICENSE).
+**Which artists would you like to sync?**
+
+| Option | Description |
+|---|---|
+| 1 | Monitored artists only. |
+| 2 | All artists, including unmonitored artists. |
+
+**Recommended: Option 1**
+
+The wizard will also ask if you want to restrict synchronization to a specific Lidarr tag.
+
+Choose `no` to include all artists within your selected scope, or `yes` to use an existing Lidarr tag.
+
+Type `yes` to save your configuration and complete the remaining setup prompts.
+
+### 4. You're Ready!
+
+**If you chose Option 1 — Import Existing Artists**
+
+The wizard will preview your existing artists.
+
+- Enter `all` to import all proposed artists.
+- Or enter individual numbers, such as `1,3,5`, to import specific artists.
+- Type `yes` to confirm.
+
+Your selected artists will be added to SoulSync. No automatic synchronization is configured.
+
+**If you chose Option 2 — Sync New Artists**
+
+Type `yes` when asked to create the Lidarr connection.
+
+That's it! Simply add artists in Lidarr as you normally would. The bridge automatically adds eligible artists to SoulSync.
+
+**If you chose Option 3 — Both**
+
+The wizard will guide you through importing your existing artists and then ask to create the Lidarr connection.
+
+Once both steps are complete, you're done!
+
+**Your existing artists are imported, and new artists will automatically sync to SoulSync whenever you add them to Lidarr.**
+
+No additional commands are required, and you do not need to leave a terminal open.
+
+---
+
+## Manual Installation
+
+Prefer to install and configure everything yourself?
+
+Follow the [Manual Installation Guide](MANUAL.md) for file placement, configuration, and setting up the Lidarr Custom Script connection.
+
+## Additional Information
+
+- Existing Watchlist entries will not be deleted or modified.
+- Artists that cannot be confidently matched are skipped for manual review.
+- Adding artists to SoulSync may trigger its downloading automations.
+- For testing, we recommend using a SoulSync Test profile with automatic downloads paused.
+
+[Manual Setup & Troubleshooting](MANUAL.md) · [Docker Setup](DOCKER.md) · [Latest Release](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/latest)
+
+---
+
+Created by **SeadogsBooty**
+
+Independent community project — [MIT License](LICENSE).
