@@ -202,7 +202,6 @@ def finish_setup(cfg, target):
         connection_result = register(cfg, script=target / 'lidarr-to-soulsync.py')
         if connection_result:
             return 1
-        print('If the connection was created or already exists, new eligible Lidarr artists sync automatically.')
     else:
         print('Existing-artist mode: no automatic Lidarr connection is needed.')
     return result
@@ -216,12 +215,16 @@ def register(cfg, preview=False, script=None):
         if state == 'conflict':
             return 1
         if state != 'preview' or preview:
+            if state == 'existing' and not preview:
+                print('Automatic sync is enabled. Add new eligible artists in Lidarr normally.')
             return 0
         print('This enables future Artist Add events, including automatic Lidarr additions within your selected scope/tag.')
         if ask('Create and test the SoulSync connection in Lidarr? Type yes to continue', 'no').lower() != 'yes':
             print('Automatic sync not enabled. Run ' + retry + ' to finish later.')
             return 0
         state = connect.configure(bridge, cfg, script, apply=True)
+        if state in ('created', 'existing'):
+            print('Automatic sync is enabled. Add new eligible artists in Lidarr normally.')
         return 1 if state == 'conflict' else 0
     except (OSError, ValueError, RuntimeError, KeyError, TypeError) as exc:
         print(str(exc) if isinstance(exc, RuntimeError) else 'Connection setup failed. Check folder permissions and API compatibility.')

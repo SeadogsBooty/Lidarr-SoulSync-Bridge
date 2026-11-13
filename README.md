@@ -45,11 +45,11 @@ From the extracted folder, as the Lidarr service user:
 python3 setup.py
 ```
 
-Enter the two server URLs and API keys. Then answer the wizard's menus:
+Enter the two server URLs and API keys. Press Enter to accept a displayed default URL only if it is correct for your setup. Then answer the wizard's menus:
 
 | Prompt | What to enter |
 | --- | --- |
-| SoulSync profile | The number next to your desired Watchlist profile |
+| SoulSync profile | The number next to your desired Watchlist profile (if only one, it is selected automatically) |
 | What would you like to do? | **1** = import existing artists once; **2** = automatically sync new artists only; **3** = do both |
 | Which artists? | **1** = monitored only (recommended); **2** = all artists, including unmonitored |
 | Restrict to a Lidarr tag? | **no** = all artists in the chosen scope; **yes** = enter an existing Lidarr tag |
@@ -61,7 +61,7 @@ Enter the two server URLs and API keys. Then answer the wizard's menus:
 
 **Option 2 — New artists:** Type `yes` when asked to create the Lidarr connection. That's it. Add artists in Lidarr normally; the bridge syncs eligible new artists automatically.
 
-**Option 3 — Both:** Approve the initial import as in option 1, then type `yes` to create the Lidarr connection as in option 2. Your existing artists are imported and new eligible artists sync automatically.
+**Option 3 — Both:** Approve the initial import as in option 1, then type `yes` to create the Lidarr connection as in option 2. After that, just add artists in Lidarr normally. No more commands are needed.
 
 Existing Watchlist entries are preserved. Ambiguous matches are skipped for review. Press Enter at the import selection to skip it, or decline confirmation to cancel that import. Additions may trigger SoulSync downloads; use a Test profile and pause automatic downloads when testing.
 
