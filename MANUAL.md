@@ -17,8 +17,9 @@ Replace the AppData example with the path Lidarr reports. Common paths are `/var
 ```sh
 umask 077
 cp -n config.env.example config.env
+chmod 700 .
 chmod 600 config.env
-chmod 700 lidarr-to-soulsync.py
+chmod 700 lidarr-to-soulsync.py setup.py connect.py install.py
 nano config.env
 ```
 
@@ -43,7 +44,7 @@ python3 -c 'import setup; print([(p["id"], p["name"]) for p in setup.bridge.prof
 
 Enter the ID of the desired profile in `config.env`. Use `SYNC_MODE=bulk` for existing artists only or `future` for new artists only. Leave `REQUIRE_TAG` empty unless you want to sync only artists with a specific Lidarr tag.
 
-Keep the configuration private. The Lidarr service user must own or have access to the folder and files.
+Keep the configuration private. The Lidarr service user must own the bridge directory and private runtime files. Do not use symbolic links or hardlinks for the packaged files, config, history or lock. Use the final API URLs, preferably HTTPS on untrusted networks; authenticated redirects are refused. If moving between containers/users, fix ownership before running.
 
 **3. Enable automatic sync (optional).** In Lidarr, go to **Settings → Connect → + → Custom Script**:
 
@@ -65,6 +66,12 @@ To have the bridge create the Custom Script connection instead of configuring it
 
 For a noninteractive import, first preview with `python3 lidarr-to-soulsync.py --bulk`, then explicitly apply with `python3 lidarr-to-soulsync.py --bulk --apply`. Interactive `--bulk --select` always asks for selection and confirmation, including when you enter `all`. Canceling the initial import in the wizard does not prevent it offering future sync in both mode.
 
+## Automatic sync behavior
+
+The bridge searches for an artist, checks for duplicates, then adds the artist to the selected SoulSync Watchlist with SoulSync's defaults. It never requests a Watchlist scan, searches for releases, starts downloads, or changes automation settings. SoulSync independently processes its Watchlist according to the user's configuration.
+
+Automatic sync runs only on Lidarr's **Artist Add** event. Monitoring or tagging an existing artist later does not send an Artist Add event. To sync that artist, use a single-artist preview/apply or bulk import (in bulk/both mode). Removing an artist from Lidarr never removes it from SoulSync. If SoulSync is offline, an attempted event is recorded locally when possible; retry after it returns. No background retry service is installed.
+
 ## Troubleshooting and recovery
 
 | Command (run with `python3 lidarr-to-soulsync.py`) | What it does |
@@ -82,4 +89,23 @@ Unresolved artists from the wizard's preview are shown in its summary but are no
 
 Matching follows SoulSync's search provider. Ambiguous identities are left for review; some exact-name matches lack independent identity evidence, so check proposed additions before applying. Deezer writes have been live-tested; other supported providers have automated coverage but await provider-specific live validation. Direct lookup supports Deezer, iTunes and MusicBrainz; iTunes defaults to the US storefront.
 
-Existing installations: back up first, preserve `config.env`, `activity.jsonl`, ownership and the Lidarr connection. Never run simultaneous imports from different installations.
+If a request fails with "Authenticated API redirect blocked", use the final API URL (including any reverse-proxy base path) rather than a redirecting address. If permissions are refused, fix ownership as the actual Lidarr service user and use `chmod 700` on the bridge directory and `chmod 600` on `config.env`, `activity.jsonl` and `bridge.lock` where present. Inspect symbolic links before replacing them; never chmod through an untrusted link. Avoid simultaneous imports from different installations.
+
+## Upgrade, disable or uninstall
+
+**Upgrade:** Temporarily disable the SoulSync Custom Script connection in Lidarr (or remove it and recreate it afterward), and wait for any active bridge process to finish. Back up the installed `scripts/soulsync` folder to a private location outside the source repository. Download the new named installation ZIP and extract it to a separate staging folder. As the Lidarr service user, replace only the nine packaged files in the existing bridge folder; keep `config.env`, `activity.jsonl` and `bridge.lock` unchanged. Set the directory to mode 700, the Python scripts to 700 and private runtime files to 600. Re-enable or recreate the existing connection and click **Test** (no artist additions). Bulk-only users can run a read-only five-artist preview instead. Do not rerun the first-time wizard over an existing config.
+
+**Disable:** Disable the SoulSync connection under Lidarr **Settings → Connect**, or remove it if your Lidarr version does not offer a disable control. No new Artist Add syncs occur. The already imported artists stay in SoulSync.
+
+**Uninstall:** Disable/remove the connection first and wait for active runs to finish. Back up the bridge folder if desired, then delete only the installed `scripts/soulsync` directory. Do not delete Lidarr's AppData, your music library or any SoulSync data. Previously added artists and SoulSync automation settings remain unchanged.
+
+## Compatibility
+
+| Component | Support |
+| --- | --- |
+| Python | 3.8+ on Linux; CI covers 3.8, 3.11, 3.13 and 3.14 |
+| Lidarr | Native Linux and Docker installations tested; requires the Artist API and Custom Script Artist Add support for future sync |
+| SoulSync | Requires profile listing, artist search and profile-scoped Watchlist read/write APIs; a paginated or unexpected Watchlist response is refused to protect against duplicates |
+| Metadata | Deezer writes live-tested; other supported providers have automated coverage, but provider-specific live validation remains open |
+
+Exact Lidarr/SoulSync build numbers have not been independently recorded for every installation test. Report your versions with any issue. This is not a blanket compatibility guarantee for every image or application build.

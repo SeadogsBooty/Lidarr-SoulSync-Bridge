@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3 — Security and community readiness
+
+- Block authenticated HTTP redirects (including HTTPS downgrades and cross-host redirects); use final API URLs.
+- Restrict in-place installation permissions and reject unsafe file types, ownership, symlinks and hardlinks for installation/private runtime files.
+- Preserve Watchlist-only behavior: never request scans, downloads or automation changes. Add explicit payload and outage/retry regression coverage.
+- Add upgrade, disable, uninstall, troubleshooting, event-scope and compatibility guidance, and correct Docker staging ownership instructions.
+- Add privacy-conscious bug/feature templates and full Git-history pattern scanning to release validation. Keep the nine-file end-user archive and matching engine unchanged.
+
 ## 1.1.2 — Simplified installation package
 
 - The downloadable installation ZIP now includes only the nine files required by the installer. Tests, workflows and development files remain in the repository and GitHub source archives.

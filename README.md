@@ -24,7 +24,7 @@ Import your existing artists, sync new additions automatically, or do both. The 
 
 [**Download the latest ZIP**](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/latest) and extract it on the machine running Lidarr.
 
-Under **Assets**, choose the file named `Lidarr-SoulSync-Bridge-v1.1.2.zip` (or the named installation ZIP for a newer release), not GitHub's **Source code** ZIP. The installation ZIP contains only the nine files needed for setup. You can extract them directly into Lidarr's `scripts/soulsync` folder or let the wizard install them for you.
+Under **Assets**, choose the file named `Lidarr-SoulSync-Bridge-v1.1.3.zip` (or the named installation ZIP for a newer release), not GitHub's **Source code** ZIP. The installation ZIP contains only the nine files needed for setup. You can extract them directly into Lidarr's `scripts/soulsync` folder or let the wizard install them for you.
 
 You'll need:
 
@@ -94,6 +94,7 @@ Approve the initial import as in Option 1, then confirm creating the Lidarr conn
 
 ## Good to know
 
+- Automatic sync handles **Artist Add** events only. Later monitoring/tag changes do not trigger sync by themselves; removing an artist from Lidarr does not remove it from SoulSync.
 - Ambiguous artist matches are skipped for manual review.
 - Existing Watchlist entries are not deleted or modified.
 - SoulSync may process newly added artists according to its own Watchlist settings and automation schedule. The bridge does not request a scan or download. Use a Test profile and pause SoulSync's automatic downloads when testing.
@@ -104,7 +105,9 @@ Approve the initial import as in Option 1, then confirm creating the Lidarr conn
 | --- | --- |
 | [Manual installation](MANUAL.md) | Install the files yourself, edit the configuration and create the Lidarr connection. |
 | [Docker setup](DOCKER.md) | Install and run the bridge inside your Lidarr container. |
-| [Later imports & troubleshooting](MANUAL.md) | Import more artists, review unresolved matches and retry. |
+| [Later imports & troubleshooting](MANUAL.md#troubleshooting-and-recovery) | Import more artists, review unresolved matches and retry. |
+| [Upgrade, disable or uninstall](MANUAL.md#upgrade-disable-or-uninstall) | Keep your settings and Watchlist safe. |
+| [Compatibility](MANUAL.md#compatibility) | Supported environments and provider validation. |
 | [Releases](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/latest) | Download the latest version and see what's changed. |
 
 ---

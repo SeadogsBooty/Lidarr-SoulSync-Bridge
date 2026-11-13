@@ -34,9 +34,21 @@ jobs:
       - run: python -m unittest discover -v
       - run: python build_release.py
 
+  history:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python scan_history.py
+
   publish:
     if: github.ref == 'refs/heads/main'
-    needs: test
+    needs: [test, history]
     runs-on: ubuntu-latest
     permissions:
       contents: write

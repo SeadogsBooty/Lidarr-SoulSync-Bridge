@@ -21,18 +21,19 @@ On the Docker host, download and extract the named installation ZIP (nine files)
 
 ```sh
 STAGE=$(mktemp -d)
-curl -fL https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1.2/Lidarr-SoulSync-Bridge-v1.1.2.zip -o "$STAGE/bridge.zip"
+curl -fL https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1.3/Lidarr-SoulSync-Bridge-v1.1.3.zip -o "$STAGE/bridge.zip"
 unzip "$STAGE/bridge.zip" -d "$STAGE/files"
 ```
 
 Confirm `$STAGE/files/setup.py` exists. Copy the files into a new staging folder inside the container:
 
 ```sh
-docker exec -u abc lidarr mkdir /config/bridge-staging
-docker cp "$STAGE/files/." lidarr:/config/bridge-staging/
+docker exec -u abc lidarr mkdir /config/bridge-staging &&
+docker cp "$STAGE/files/." lidarr:/config/bridge-staging/ &&
+docker exec -u root lidarr chown -R abc:abc /config/bridge-staging
 ```
 
-If the staging folder already exists, stop and inspect it rather than overwriting anything. Ensure the service user can read the copied files. For LinuxServer, `docker exec lidarr id abc` shows the UID and GID; for other images use the UID/GID of Lidarr's process.
+The commands stop if the staging folder already exists; inspect it rather than overwriting anything. The last command gives the copied files to the LinuxServer service user. For LinuxServer, `docker exec lidarr id abc` shows the UID and GID; for other images use the UID/GID of Lidarr's process.
 
 ## 3. Run the guided setup
 
@@ -51,7 +52,7 @@ python3 setup.py
 
 Enter your own Lidarr and SoulSync URLs and API keys. Lidarr's URL can normally be `http://localhost:8686` here. SoulSync's URL must be reachable **from this container**: use its hostname on a shared Docker network or its reachable server address. Do not use `localhost` for a separate SoulSync container.
 
-Choose your profile, sync mode and scope, then confirm saving. The wizard installs into `/config/scripts/soulsync` in this example. Follow the menus in [README step 2](README.md#2-run-setup): option 1 or 3 previews the initial import and asks you to choose all or individual artists; option 2 or 3 offers to create the automatic Lidarr connection.
+Choose your profile, sync mode and scope, then confirm saving. The wizard installs into `/config/scripts/soulsync` in this example. Follow the menus in [README step 3](README.md#3-follow-the-setup-wizard): option 1 or 3 previews the initial import and asks you to choose all or individual artists; option 2 or 3 offers to create the automatic Lidarr connection.
 
 If you want to preview more artists later, use the installed folder:
 
