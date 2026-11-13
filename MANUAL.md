@@ -63,6 +63,8 @@ From the installed folder, run `python3 lidarr-to-soulsync.py --bulk --select` i
 
 To have the bridge create the Custom Script connection instead of configuring it in the UI, run `python3 setup.py --connect` from the installed folder and confirm. No connection is required in bulk-only mode.
 
+For a noninteractive import, first preview with `python3 lidarr-to-soulsync.py --bulk`, then explicitly apply with `python3 lidarr-to-soulsync.py --bulk --apply`. Interactive `--bulk --select` always asks for selection and confirmation, including when you enter `all`. Canceling the initial import in the wizard does not prevent it offering future sync in both mode.
+
 ## Troubleshooting and recovery
 
 | Command (run with `python3 lidarr-to-soulsync.py`) | What it does |
@@ -75,6 +77,8 @@ To have the bridge create the Custom Script connection instead of configuring it
 | `--help` | Show all options |
 
 Exit code 2 means manual review is needed; 1 means an error. Previews do not record attempts. Actual attempts are recorded in private `activity.jsonl`. Do not share that file or `config.env`.
+
+Unresolved artists from the wizard's preview are shown in its summary but are not written to activity history. Use `--bulk --select` to review them again, or preview an exact artist name before retrying. In both mode, unresolved imports still allow the automatic connection to be configured; the wizard retains exit code 2.
 
 Matching follows SoulSync's search provider. Ambiguous identities are left for review; some exact-name matches lack independent identity evidence, so check proposed additions before applying. Deezer writes have been live-tested; other supported providers have automated coverage but await provider-specific live validation. Direct lookup supports Deezer, iTunes and MusicBrainz; iTunes defaults to the US storefront.
 

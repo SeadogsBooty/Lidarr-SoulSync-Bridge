@@ -203,7 +203,7 @@ def mb_get(path):
         time.sleep(delay)
         try:
             status, body = request('https://musicbrainz.org',
-                {'User-Agent':'Lidarr-SoulSync-Watchlist-Bridge/1.1','Accept':'application/json'}, 'GET', path)
+                {'User-Agent':'Lidarr-SoulSync-Watchlist-Bridge/1.1.1','Accept':'application/json'}, 'GET', path)
         except (RuntimeError,OSError,ValueError,TypeError,AttributeError):
             status,body=0,{}
         if status not in (0,429,500,502,503,504): return status,body
