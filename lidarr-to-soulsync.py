@@ -24,7 +24,7 @@
 #
 # ==============================================================================
 
-"""Lidarr -> SoulSync Watchlist bridge v1.1. Python 3 standard library, Linux."""
+"""Lidarr -> SoulSync Watchlist bridge v1.1.1. Python 3 standard library, Linux."""
 import argparse
 import re
 import shlex
@@ -203,7 +203,7 @@ def mb_get(path):
         time.sleep(delay)
         try:
             status, body = request('https://musicbrainz.org',
-                {'User-Agent':'Lidarr-SoulSync-Watchlist-Bridge/1.1','Accept':'application/json'}, 'GET', path)
+                {'User-Agent':'Lidarr-SoulSync-Watchlist-Bridge/1.1.1','Accept':'application/json'}, 'GET', path)
         except (RuntimeError,OSError,ValueError,TypeError,AttributeError):
             status,body=0,{}
         if status not in (0,429,500,502,503,504): return status,body
@@ -662,10 +662,10 @@ def main():
             if args.select and plan:
                 print('\nProposed additions (choose individual artists):')
                 for n,(a,pid) in enumerate(plan,1): print(f'{n}. {a["artistName"]} ({pid})')
-                try: raw=input('Enter comma-separated numbers, or Enter to cancel: ').strip()
+                try: raw=input('Enter all, comma-separated numbers, or Enter to cancel: ').strip()
                 except (EOFError,KeyboardInterrupt): return 0
                 if not raw: print('Cancelled. No writes.'); return 0
-                try: chosen=sorted({int(x.strip()) for x in raw.split(',')})
+                try: chosen=list(range(1,len(plan)+1)) if raw.casefold()=='all' else sorted({int(x.strip()) for x in raw.split(',')})
                 except ValueError: print('Invalid selection. No writes.'); return 2
                 if not chosen or any(n<1 or n>len(plan) for n in chosen): print('Invalid selection. No writes.'); return 2
                 print('Selected: '+', '.join(plan[n-1][0]['artistName'] for n in chosen))
@@ -684,7 +684,7 @@ def main():
                     except (OSError,RuntimeError,ValueError,KeyError,TypeError) as exc:
                         record(cfg,a,'error',str(exc) if isinstance(exc,RuntimeError) else type(exc).__name__); logged_error=True; raise
                 print('Selected import summary: '+', '.join(f'{v} {k}' for k,v in applied.items()))
-                return 2 if applied['review'] else 0
+                return 2 if applied['review'] or counts['review'] else 0
             if counts['review']:
                 print('Manual review required; no unresolved artist was added. For recorded apply attempts run --review.',file=sys.stderr)
                 return 2

@@ -101,6 +101,31 @@ class Recovery(unittest.TestCase):
             self.assertEqual(a['id'],2); self.assertEqual(manual,'deezer:2'); return 'added'
         with patch.object(b,'config',return_value=CFG),patch.object(b,'lidarr',return_value=artists),patch.object(b,'watchlist',return_value=[]),patch.object(b,'process',side_effect=process) as proc,patch('sys.argv',['bridge','--bulk','--select']),patch.object(b.sys.stdin,'isatty',return_value=True),patch('builtins.input',side_effect=['2','yes']):
             self.assertEqual(b.main(),0); self.assertEqual(proc.call_count,3)
+    def test_select_all_confirmed(self):
+        artists=[A,dict(A,id=2,artistName='Other',foreignArtistId='')]
+        writes=[]
+        def process(cfg,a,rows,apply,manual=None,plan=None):
+            if not apply:
+                plan.append((a,'deezer:'+str(a['id']))); return 'new'
+            self.assertEqual(manual,'deezer:'+str(a['id']))
+            writes.append(a['id']); return 'added'
+        with patch.object(b,'config',return_value=CFG),patch.object(b,'lidarr',return_value=artists),patch.object(b,'watchlist',return_value=[]),patch.object(b,'process',side_effect=process),patch('sys.argv',['bridge','--bulk','--select','--delay','0']),patch.object(b.sys.stdin,'isatty',return_value=True),patch('builtins.input',side_effect=['all','yes']):
+            self.assertEqual(b.main(),0); self.assertEqual(writes,[1,2])
+    def test_select_all_cancel_no_writes(self):
+        def process(cfg,a,rows,apply,manual=None,plan=None):
+            self.assertFalse(apply); plan.append((a,'deezer:1')); return 'new'
+        with patch.object(b,'config',return_value=CFG),patch.object(b,'lidarr',return_value=[A]),patch.object(b,'watchlist',return_value=[]),patch.object(b,'process',side_effect=process),patch('sys.argv',['bridge','--bulk','--select']),patch.object(b.sys.stdin,'isatty',return_value=True),patch('builtins.input',side_effect=['all','no']):
+            self.assertEqual(b.main(),0)
+    def test_select_retains_unresolved_status(self):
+        artists=[A,dict(A,id=2,artistName='Other',foreignArtistId='')]
+        def process(cfg,a,rows,apply,manual=None,plan=None):
+            if a['id']==2:
+                self.assertFalse(apply); return 'review'
+            if not apply:
+                plan.append((a,'deezer:1')); return 'new'
+            return 'added'
+        with patch.object(b,'config',return_value=CFG),patch.object(b,'lidarr',return_value=artists),patch.object(b,'watchlist',return_value=[]),patch.object(b,'process',side_effect=process),patch('sys.argv',['bridge','--bulk','--select','--delay','0']),patch.object(b.sys.stdin,'isatty',return_value=True),patch('builtins.input',side_effect=['all','yes']):
+            self.assertEqual(b.main(),2)
     def test_select_cancel_no_write(self):
         def process(cfg,a,rows,apply,manual=None,plan=None):
             self.assertFalse(apply); plan.append((a,'deezer:1')); return 'new'

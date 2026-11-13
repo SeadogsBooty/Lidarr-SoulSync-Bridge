@@ -31,7 +31,7 @@ import shutil
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-FILES = ('lidarr-to-soulsync.py', 'setup.py', 'connect.py', 'install.py', 'README.md', 'config.env.example', 'LICENSE', 'DOCKER.md')
+FILES = ('lidarr-to-soulsync.py', 'setup.py', 'connect.py', 'install.py', 'README.md', 'config.env.example', 'LICENSE', 'DOCKER.md', 'MANUAL.md')
 
 
 def destination(bridge, cfg):

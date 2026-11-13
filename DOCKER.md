@@ -21,7 +21,7 @@ On the Docker host, download and extract the release. You can also download and 
 
 ```sh
 STAGE=$(mktemp -d)
-curl -fL https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1/Lidarr-SoulSync-Bridge-v1.1.zip -o "$STAGE/bridge.zip"
+curl -fL https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1.1/Lidarr-SoulSync-Bridge-v1.1.1.zip -o "$STAGE/bridge.zip"
 unzip "$STAGE/bridge.zip" -d "$STAGE/files"
 ```
 
@@ -51,16 +51,16 @@ python3 setup.py
 
 Enter your own Lidarr and SoulSync URLs and API keys. Lidarr's URL can normally be `http://localhost:8686` here. SoulSync's URL must be reachable **from this container**: use its hostname on a shared Docker network or its reachable server address. Do not use `localhost` for a separate SoulSync container.
 
-Choose your profile, sync mode and scope, then confirm saving and optional connection creation. The wizard installs into `/config/scripts/soulsync` in this example.
+Choose your profile, sync mode and scope, then confirm saving. The wizard installs into `/config/scripts/soulsync` in this example. Follow the menus in [README step 2](README.md#2-run-setup): option 1 or 3 previews the initial import and asks you to choose all or individual artists; option 2 or 3 offers to create the automatic Lidarr connection.
 
-Still inside the container, test it:
+If you want to preview more artists later, use the installed folder:
 
 ```sh
 cd /config/scripts/soulsync
 python3 lidarr-to-soulsync.py --bulk --limit 5
 ```
 
-This preview requires bulk or both mode. For future-only mode use the Lidarr connection's **Test** button instead. Follow [README step 3](README.md#3-use-the-bridge) to import or enable automatic sync.
+This preview requires bulk or both mode. For future-only mode use the Lidarr connection's **Test** button instead. If the wizard created the connection, new eligible Lidarr artists sync automatically; no terminal needs to stay open.
 
 ## Manual setup instead
 
