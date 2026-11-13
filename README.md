@@ -16,6 +16,8 @@ Manage artists in Lidarr. Download music with SoulSync.
 
 Import your existing artists, sync new additions automatically, or do both. The bridge avoids duplicate entries and leaves your existing SoulSync Watchlist untouched.
 
+**The bridge only adds artists to your SoulSync Watchlist.** It does not start Watchlist scans, search for releases, initiate downloads, or change your SoulSync automation settings. SoulSync manages scanning and downloading independently, using your existing configuration and Watchlist defaults.
+
 ## Getting started
 
 ### 1. Download
@@ -94,7 +96,7 @@ Approve the initial import as in Option 1, then confirm creating the Lidarr conn
 
 - Ambiguous artist matches are skipped for manual review.
 - Existing Watchlist entries are not deleted or modified.
-- Adding artists to SoulSync may trigger its download automations. Use a Test profile and pause automatic downloads when testing.
+- SoulSync may process newly added artists according to its own Watchlist settings and automation schedule. The bridge does not request a scan or download. Use a Test profile and pause SoulSync's automatic downloads when testing.
 
 ## More ways to get started
 
