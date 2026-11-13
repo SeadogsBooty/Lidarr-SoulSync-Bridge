@@ -25,73 +25,56 @@
 # ==============================================================================
 ```
 
-# Lidarr SoulSync Bridge v1.1
+# Lidarr SoulSync Bridge v1.1.1
 
-Sync your Lidarr artists to your SoulSync Watchlist. Import your existing library, automatically sync new artists, or do both. Existing Watchlist entries are preserved.
+Import your Lidarr artists into SoulSync's Watchlist, keep future additions in sync, or do both.
 
-**[Download v1.1 ZIP](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1/Lidarr-SoulSync-Bridge-v1.1.zip)**
+## 1. Download
 
-## 1. Before you start
+[Download the latest release](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/latest), then extract the ZIP on the machine running Lidarr.
 
-- Lidarr and SoulSync must be running and reachable from Lidarr.
-- Python 3.8+ installed where Lidarr runs (`python3 --version`). No pip packages needed.
-- Lidarr API key: **Settings → General → Security**.
-- SoulSync API key: **Settings → SoulSync API → Generate API Key**. Allow profile listing, artist search and Watchlist read/write.
+You need Python 3.8+ where Lidarr runs, your Lidarr API key (**Settings → General → Security**) and a SoulSync API key (**Settings → SoulSync API**). Both apps and public metadata services must be reachable. No pip packages needed.
 
-If you're testing, use a SoulSync Test profile and pause automatic downloads.
+**Docker?** Follow [Docker setup](DOCKER.md) to run the wizard inside the Lidarr container.
 
-**Docker users:** Follow [Docker setup](DOCKER.md) first. The bridge runs inside the **Lidarr** container, not SoulSync.
+## 2. Run setup
 
-## 2. Install the bridge
-
-### A. Guided setup (recommended)
-
-1. Download and extract the ZIP on the machine running Lidarr.
-2. Open a terminal in the extracted folder containing `setup.py`, as the Lidarr service user.
-3. Run:
+From the extracted folder, as the Lidarr service user:
 
 ```sh
 python3 setup.py
 ```
 
-On native Linux, if your Lidarr service runs as user `lidarr`, you can instead run `sudo -u lidarr -H python3 setup.py` from the extracted folder. That user must be able to read the files.
+Enter the two server URLs and API keys. Then answer the wizard's menus:
 
-Enter your Lidarr and SoulSync URLs and API keys, then choose your SoulSync profile. Select **3 = Both** to import existing artists and sync future additions, or choose only the mode you need. Select **1 = Monitored artists only** to start.
+| Prompt | What to enter |
+| --- | --- |
+| SoulSync profile | The number next to your desired Watchlist profile |
+| What would you like to do? | **1** = import existing artists once; **2** = automatically sync new artists only; **3** = do both |
+| Which artists? | **1** = monitored only (recommended); **2** = all artists, including unmonitored |
+| Restrict to a Lidarr tag? | **no** = all artists in the chosen scope; **yes** = enter an existing Lidarr tag |
+| Save configuration? | **yes** |
 
-Type `yes` to save. If enabling future sync, also confirm creating the Lidarr connection.
+### What happens next?
 
-**Setup is complete.** The wizard installs the bridge in Lidarr's AppData under `scripts/soulsync` and prints the installed path. It does not import any artists yet.
+**Option 1 — Existing artists:** The wizard previews your library. Enter `all` to import every proposed artist, or enter numbers such as `1,3,5` to import just those artists. Type `yes` to confirm. That's it; no ongoing sync is configured.
 
-### B. Manual setup (no wizard)
+**Option 2 — New artists:** Type `yes` when asked to create the Lidarr connection. That's it. Add artists in Lidarr normally; the bridge syncs eligible new artists automatically.
 
-Prefer to install the files yourself? Follow the **[manual installation guide](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/blob/main/MANUAL.md)**. It walks you through copying the files, editing `config.env`, setting permissions and creating the Lidarr Custom Script connection.
+**Option 3 — Both:** Approve the initial import as in option 1, then type `yes` to create the Lidarr connection as in option 2. Your existing artists are imported and new eligible artists sync automatically.
 
-## 3. Use the bridge
+Existing Watchlist entries are preserved. Ambiguous matches are skipped for review. Press Enter at the import selection to skip it, or decline confirmation to cancel that import. Additions may trigger SoulSync downloads; use a Test profile and pause automatic downloads when testing.
 
-Open a terminal in the **installed** `scripts/soulsync` folder, using the Lidarr service user.
+## Manual setup or later imports
 
-**Preview five artists — nothing is added:**
+Prefer not to use the wizard? Follow [Manual installation](MANUAL.md) for file placement, configuration and the Lidarr Custom Script connection.
 
-```sh
-python3 lidarr-to-soulsync.py --bulk --limit 5
-```
-
-**Choose which artists to import:**
+If you skipped the initial import or want to import more later, run this from the installed `scripts/soulsync` folder (mode 1 or 3):
 
 ```sh
 python3 lidarr-to-soulsync.py --bulk --select
 ```
 
-Enter the desired artist numbers, separated by commas, then type `yes` to add them. Press Enter without selecting anything to cancel.
-
-**Import everything:** run `python3 lidarr-to-soulsync.py --bulk` to preview all, then `python3 lidarr-to-soulsync.py --bulk --apply` to add all resolved eligible artists.
-
-**Automatic sync:** If you enabled future sync, add a new eligible artist in Lidarr. The bridge runs automatically. Future-only mode does not use bulk commands.
-
-## Need help?
-
-[Manual setup and recovery](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/blob/main/MANUAL.md) · [Docker setup](DOCKER.md) · [Release notes](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/tag/v1.1)
-
-Run `python3 lidarr-to-soulsync.py --review` for unresolved recorded attempts or `--help` for all commands.
+For automatic sync, no terminal needs to stay open. See [manual setup and recovery](MANUAL.md) for troubleshooting and [Docker setup](DOCKER.md) for containers.
 
 Independent community project. [MIT license](LICENSE).

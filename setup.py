@@ -31,6 +31,7 @@ import install
 import getpass
 import importlib.util
 import os
+import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -75,7 +76,7 @@ def main():
         return register(cfg, preview=args.connection_preview)
     print('\nLidarr -> SoulSync: first-time setup')
     print('Run this in the same Linux environment/container that will execute the bridge.')
-    print('This wizard does not add artists or trigger downloads. It can optionally create a Lidarr connection.')
+    print('This wizard configures the bridge. Existing-artist modes preview an import and ask before adding anything. Future sync creates a Lidarr connection after confirmation.')
     if CONFIG.exists():
         print('A config.env already exists. It will not be replaced. Use a fresh folder for a clean test.')
         return 1
@@ -129,9 +130,9 @@ def main():
         print('No config saved. Retry setup when the issue is resolved.')
         return 1
     print('\n3. What would you like to do?')
-    print('1 = Import existing artists only (one-time)')
-    print('2 = Sync new artists only (future Artist Add events)')
-    print('3 = Both')
+    print('1 = Import existing artists now (one-time; review and confirm)')
+    print('2 = Sync new artists only (no existing-library import)')
+    print('3 = Both (import existing artists now, then enable future sync)')
     while True:
         choice = ask('Choose 1, 2 or 3', '1')
         if choice in ('1','2','3'): break
@@ -165,15 +166,45 @@ def main():
     except (OSError, RuntimeError) as exc:
         print(str(exc) if isinstance(exc, RuntimeError) else 'Cannot install files. Check AppData folder permissions; run as the Lidarr service account.')
         return 1
-    print('\nSetup complete. No watchlist changes were made.')
+    print('\nConfiguration saved.')
     print('Installed in: ' + str(target))
-    if cfg['SYNC_MODE'] in ('bulk','both'):
-        print('Next: python3 ' + str(target / 'lidarr-to-soulsync.py') + ' --bulk --limit 5')
-    result = 0
-    if cfg['SYNC_MODE'] in ('future','both'):
-        result = register(cfg, script=target / 'lidarr-to-soulsync.py')
+    return finish_setup(cfg, target)
 
-    print('Before importing, verify the intended profile and pause SoulSync download automations if needed.')
+
+def initial_import(cfg, target):
+    """Run the existing, confirmed bulk-selection flow in the installed directory."""
+    script = target / 'lidarr-to-soulsync.py'
+    child_env = os.environ.copy()
+    # Always use the just-installed profile, never a caller's temporary override.
+    child_env['BRIDGE_CONFIG'] = str(target / 'config.env')
+    print('\nInitial import: profile ' + cfg['SOULSYNC_PROFILE_ID'], flush=True)
+    print('Review the proposed artists. Enter all or individual numbers, then type yes to add.', flush=True)
+    print('Adding artists can trigger SoulSync downloads. Pause automatic downloads if testing.', flush=True)
+    return subprocess.run([sys.executable, '-u', str(script), '--bulk', '--select'],
+                          cwd=str(target), env=child_env, check=False).returncode
+
+
+def finish_setup(cfg, target):
+    """Complete the chosen mode; distinguish review, failure and connection status."""
+    mode = cfg['SYNC_MODE']
+    result = 0
+    if mode in ('bulk', 'both'):
+        result = initial_import(cfg, target)
+        if result == 2:
+            print('Initial import has artists requiring review. Check the summary above.')
+        elif result != 0:
+            print('Initial import did not complete successfully. Earlier successful adds may remain.')
+        else:
+            print('Initial import step finished. Check the summary above for additions or cancellation.')
+        print('To preview or resume later, run python3 ' + str(target / 'lidarr-to-soulsync.py') + ' --bulk --select')
+    if mode in ('future', 'both'):
+        print('\nFuture sync: configure the Lidarr Artist Add connection.')
+        connection_result = register(cfg, script=target / 'lidarr-to-soulsync.py')
+        if connection_result:
+            return 1
+        print('If the connection was created or already exists, new eligible Lidarr artists sync automatically.')
+    else:
+        print('Existing-artist mode: no automatic Lidarr connection is needed.')
     return result
 
 
