@@ -24,7 +24,7 @@
 #
 # ==============================================================================
 
-"""Lidarr -> SoulSync Watchlist bridge v1.1.2. Python 3 standard library, Linux."""
+"""Lidarr -> SoulSync Watchlist bridge v1.1.3. Python 3 standard library, Linux."""
 import argparse
 import re
 import shlex
@@ -34,6 +34,7 @@ from urllib.parse import urlsplit, urlencode
 import fcntl
 import json
 import os
+import stat
 import sys
 import time
 import urllib.error
@@ -60,11 +61,39 @@ def name_key(v):
     return ' '.join(norm(v).translate(str.maketrans({c:'-' for c in '‐‑‒–—−'})).split())
 
 
+def private_fd(path, flags):
+    """Open private regular files without following symlinks or hardlinks."""
+    fd = os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
+    try:
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                or info.st_uid != os.geteuid() or info.st_mode & 0o077):
+            raise RuntimeError('Unsafe permissions or ownership on ' + Path(path).name +
+                               '; use a regular file owned by the Lidarr service user (chmod 600).')
+        return fd
+    except Exception:
+        os.close(fd)
+        raise
+
+
+def read_config(path):
+    try:
+        with os.fdopen(private_fd(path, os.O_RDONLY), 'r', encoding='utf-8') as handle:
+            return dict((k.strip(), v.strip().strip('"').strip("'")) for k,v in
+                        (line.split('=',1) for line in handle.read().splitlines()
+                         if '=' in line and not line.lstrip().startswith('#')))
+    except OSError:
+        raise RuntimeError('Cannot safely read config.env. Check that it is a regular file owned by the Lidarr service user, not a symbolic link.') from None
+
+
 def config():
-    path = Path(os.environ.get('BRIDGE_CONFIG', str(BASE / 'config.env')))
-    return dict((k.strip(), v.strip().strip('"').strip("'")) for k,v in
-                (line.split('=',1) for line in path.read_text().splitlines()
-                 if '=' in line and not line.lstrip().startswith('#')))
+    return read_config(Path(os.environ.get('BRIDGE_CONFIG', str(BASE / 'config.env'))))
+
+
+class NoAuthRedirect(urllib.request.HTTPRedirectHandler):
+    """Do not forward authenticated requests to any redirect destination."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def request(url, headers, method, path, payload=None):
@@ -73,11 +102,16 @@ def request(url, headers, method, path, payload=None):
     if data is not None:
         headers['Content-Type'] = 'application/json'
     req = urllib.request.Request(url.rstrip('/') + path, data=data, headers=headers, method=method)
+    authenticated = any(key.casefold() in ('authorization', 'x-api-key') for key in headers)
     try:
-        with urllib.request.urlopen(req, timeout=30) as response:
+        # Reject even same-origin redirects: POST could be rewritten to GET.
+        opener = urllib.request.build_opener(NoAuthRedirect()).open if authenticated else urllib.request.urlopen
+        with opener(req, timeout=30) as response:
             body = response.read()
             return response.status, json.loads(body) if body else {}
     except urllib.error.HTTPError as exc:
+        if authenticated and 300 <= exc.code < 400:
+            raise RuntimeError('Authenticated API redirect blocked. Use the final Lidarr or SoulSync URL (HTTPS if available), not a redirect or login page.') from None
         return exc.code, {}
     except (OSError, ValueError) as exc:
         raise RuntimeError(f'{path}: connection or response failure ({type(exc).__name__}). Check service availability and network.') from None
@@ -417,16 +451,18 @@ def record(cfg, artist, status, detail, candidates=()):
          'lidarr_id':str(artist.get('id','')),'artist':str(artist.get('artistName','')),
          'mbid':norm(artist.get('foreignArtistId')),'status':status,'detail':detail,'candidates':list(candidates)}
     try:
-        with os.fdopen(os.open(BASE/'activity.jsonl',os.O_WRONLY|os.O_APPEND|os.O_CREAT,0o600),'a',encoding='utf-8') as f:
+        with os.fdopen(private_fd(BASE/'activity.jsonl',os.O_WRONLY|os.O_APPEND|os.O_CREAT),'a',encoding='utf-8') as f:
             f.write(json.dumps(row,ensure_ascii=True)+'\n')
-    except OSError:
-        print('WARNING: Could not write activity.jsonl; check directory permissions.',file=sys.stderr)
+    except (OSError, RuntimeError):
+        print('WARNING: Could not safely write activity.jsonl; check ownership, permissions and symbolic links.',file=sys.stderr)
 
 
 def pending_reviews(cfg):
     path=BASE/'activity.jsonl'; latest={}; history=[]
-    if path.exists():
-        for line in path.read_text().splitlines():
+    if path.exists() or path.is_symlink():
+        with os.fdopen(private_fd(path,os.O_RDONLY),'r',encoding='utf-8') as handle:
+            lines=handle.read().splitlines()
+        for line in lines:
             try: row=json.loads(line)
             except ValueError: continue
             if isinstance(row,dict) and row.get('profile')==str(cfg['SOULSYNC_PROFILE_ID']): history.append(row)
@@ -614,8 +650,14 @@ def main():
         if not explicit and mode=='bulk': print('Future sync disabled (bulk-only mode).'); return 0
         if event=='test' and not explicit:
             rows=watchlist(cfg); lidarr(cfg,'/api/v1/artist'); print(f'Connection test passed. {len(rows)} watched artists. No writes.'); return 0
+        info=BASE.stat()
+        if info.st_uid != os.geteuid() or info.st_mode & 0o022:
+            raise RuntimeError('Unsafe bridge directory ownership or permissions; use the Lidarr service user and chmod 700 on scripts/soulsync.')
         lockpath=BASE/'bridge.lock'
-        with os.fdopen(os.open(lockpath,os.O_CREAT|os.O_RDWR,0o600),'w') as lock:
+        history=BASE/'activity.jsonl'
+        if history.exists() or history.is_symlink():
+            os.close(private_fd(history,os.O_RDONLY))
+        with os.fdopen(private_fd(lockpath,os.O_CREAT|os.O_RDWR),'w') as lock:
             fcntl.flock(lock,fcntl.LOCK_EX)
             artists=lidarr(cfg,'/api/v1/artist'); tags=tag_map(cfg)
             if cfg.get('REQUIRE_TAG') and norm(cfg['REQUIRE_TAG']) not in tags.values(): raise RuntimeError('Required Lidarr tag not found')

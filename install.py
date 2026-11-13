@@ -28,6 +28,8 @@ import hmac
 import os
 import re
 import shutil
+import stat
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -64,12 +66,36 @@ def validate_config(cfg):
             raise RuntimeError('Configuration contains an invalid key or control character. No configuration saved.')
 
 
+def regular_file(path, require_owner=False):
+    try:
+        info = path.lstat()
+    except OSError:
+        raise RuntimeError('Missing installation file: ' + path.name) from None
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+        raise RuntimeError('Unsafe installation file (symbolic link, hardlink or non-regular file): ' + path.name)
+    if require_owner and info.st_uid != os.geteuid():
+        raise RuntimeError('Installation file not owned by the Lidarr service user: ' + path.name)
+
+
 def save(source, target, cfg):
     validate_config(cfg)
     source, target = Path(source).resolve(), Path(target)
     if target.is_symlink() or target.parent.is_symlink():
         raise RuntimeError('Installation path contains a symbolic link.')
     same = source == target.resolve()
+    for name in FILES:
+        regular_file(source / name, require_owner=same)
+    if same:
+        if target.stat().st_uid != os.geteuid():
+            raise RuntimeError('Installation folder not owned by the Lidarr service user.')
+        if (target / 'config.env').exists() or (target / 'config.env').is_symlink():
+            raise FileExistsError('Existing config.env will not be replaced.')
+        for name in ('activity.jsonl', 'bridge.lock'):
+            file = target / name
+            if file.exists() or file.is_symlink():
+                regular_file(file, require_owner=True)
+                if file.stat().st_mode & 0o077:
+                    raise RuntimeError('Unsafe runtime file permissions: ' + name + '; use chmod 600.')
     created = False
     if not same:
         if target.exists():
@@ -77,6 +103,8 @@ def save(source, target, cfg):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.mkdir(mode=0o700)
         created = True
+    if target.parent.stat().st_mode & 0o022:
+        print('WARNING: Lidarr scripts parent is writable by other users; review access to that directory.', file=sys.stderr)
     config = target / 'config.env'
     try:
         if not same:
@@ -84,12 +112,10 @@ def save(source, target, cfg):
                 shutil.copyfile(source / name, target / name)
                 (target / name).chmod(0o700 if name.endswith('.py') else 0o600)
         else:
-            # In-place installs already have the packaged files.
+            target.chmod(0o700)
             for name in FILES:
-                if not (target / name).is_file():
-                    raise RuntimeError('Installation files are missing. Extract the complete ZIP first.')
-            (target / 'lidarr-to-soulsync.py').chmod(0o700)
-        fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                (target / name).chmod(0o700 if name.endswith('.py') else 0o600)
+        fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, 'w', encoding='utf-8') as f:
             for k, v in cfg.items():
                 f.write(f'{k}={v}\n')

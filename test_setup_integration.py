@@ -96,6 +96,8 @@ class WizardIntegrationTests(unittest.TestCase):
                         return 200, {'success': True, 'data': {'source': 'deezer', 'artists': matches}}
                     if path == '/api/v1/watchlist' and method == 'POST':
                         self.assertTrue(approved['import'], 'Write before explicit import approval')
+                        self.assertEqual(set(payload), {'artist_id','artist_name','source'},
+                                         'Artist addition must not override Watchlist settings or request a scan')
                         actions.append('add:' + payload['artist_id'])
                         rows.append({'profile_id': 2, 'artist_name': payload['artist_name'],
                                      'deezer_artist_id': payload['artist_id'], 'source': 'deezer'})

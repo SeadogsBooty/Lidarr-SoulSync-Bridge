@@ -51,6 +51,29 @@ class Recovery(unittest.TestCase):
                 with patch.object(b,'ss_data',side_effect=[search(source,[{'name':'Example','id':pid}]),{'success':True}]) as req,patch.object(b,'watchlist',side_effect=[[],[row]]):
                     self.assertEqual(b.process(CFG,A,[],True),'added')
                     self.assertEqual(req.call_args.args[3],{'artist_id':pid,'artist_name':'Example','source':source})
+    def test_future_event_outage_then_retry_watchlist_only(self):
+        calls=[]
+        rows=[]
+        def transport(url, headers, method, path, payload=None):
+            calls.append((url,method,path,payload))
+            if path=='/api/v1/artist' and method=='GET': return 200,[A]
+            if path=='/api/v1/watchlist' and method=='GET':
+                return 200,{'success':True,'data':{'artists':list(rows)}}
+            if path=='/api/v1/search/artists' and method=='POST':
+                return 200,{'success':True,'data':{'source':'deezer','artists':[{'name':'Example','id':'123'}]}}
+            if path=='/api/v1/watchlist' and method=='POST':
+                self.assertEqual(payload,{'artist_id':'123','artist_name':'Example','source':'deezer'})
+                rows.append(dict(ROW)); return 201,{'success':True}
+            self.fail('Unexpected API request: '+method+' '+path)
+        import os
+        with patch.object(b,'config',return_value=CFG),patch.dict(os.environ,{'Lidarr_EventType':'ArtistAdd','Lidarr_Artist_Id':'1'},clear=True),patch('sys.argv',['bridge']),patch.object(b,'lidarr',return_value=[A]),patch.object(b,'watchlist',side_effect=RuntimeError('SoulSync: HTTP 503')):
+            self.assertEqual(b.main(),1)
+        self.assertEqual(len(b.pending_reviews(CFG)),1)
+        b.MB_CACHE[MB]=metadata()
+        with patch.object(b,'config',return_value=CFG),patch.object(b,'request',side_effect=transport),patch('sys.argv',['bridge','--retry-all','--apply']):
+            self.assertEqual(b.main(),0)
+        self.assertEqual(b.pending_reviews(CFG),[])
+        self.assertEqual([c[2] for c in calls if c[0]==CFG['SOULSYNC_URL'] and c[1]=='POST'],['/api/v1/search/artists','/api/v1/watchlist'])
     def test_unknown_provider_fails_closed(self):
         with patch.object(b,'ss_data',return_value=search('new-provider',[{'name':'Example','id':'1'}])) as req:
             with self.assertRaisesRegex(RuntimeError,'unsupported artist-search provider'): b.process(CFG,A,[],True)
@@ -138,6 +161,7 @@ class Recovery(unittest.TestCase):
             self.assertEqual(b.process(CFG,A,rows,True),'review'); self.assertEqual(req.call_count,1)
     def test_legacy_history_clears_after_retry(self):
         (b.BASE/'activity.jsonl').write_text(json.dumps({'profile':'2','lidarr_id':'1','artist':'Example','status':'review','detail':'old','candidates':[]})+'\n')
+        (b.BASE/'activity.jsonl').chmod(0o600)
         b.record(CFG,A,'added','verified'); self.assertEqual(b.pending_reviews(CFG),[])
     def test_source_change_alias_query_does_not_use_wrong_namespace(self):
         b.MB_CACHE[MB]=metadata('Canonical',['https://www.deezer.com/artist/123'])

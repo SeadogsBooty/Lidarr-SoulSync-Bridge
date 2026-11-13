@@ -72,7 +72,7 @@ def main():
     if args.connect or args.connection_preview:
         if not CONFIG.exists():
             print('Run setup.py first.'); return 1
-        cfg = dict((k.strip(), v.strip().strip(chr(34)).strip(chr(39))) for k,v in (line.split('=',1) for line in CONFIG.read_text().splitlines() if '=' in line and not line.lstrip().startswith('#')))
+        cfg = bridge.read_config(CONFIG)
         return register(cfg, preview=args.connection_preview)
     print('\nLidarr -> SoulSync: first-time setup')
     print('Run this in the same Linux environment/container that will execute the bridge.')
@@ -179,7 +179,7 @@ def initial_import(cfg, target):
     child_env['BRIDGE_CONFIG'] = str(target / 'config.env')
     print('\nInitial import: profile ' + cfg['SOULSYNC_PROFILE_ID'], flush=True)
     print('Review the proposed artists. Enter all or individual numbers, then type yes to add.', flush=True)
-    print('Adding artists can trigger SoulSync downloads. Pause automatic downloads if testing.', flush=True)
+    print('The bridge only adds Watchlist artists. SoulSync independently handles scans and downloads according to your settings. Pause SoulSync downloads if testing.', flush=True)
     return subprocess.run([sys.executable, '-u', str(script), '--bulk', '--select'],
                           cwd=str(target), env=child_env, check=False).returncode
 
