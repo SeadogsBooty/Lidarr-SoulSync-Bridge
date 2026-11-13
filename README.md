@@ -35,6 +35,8 @@ Import existing Lidarr artists into SoulSync, automatically sync future addition
 
 Get the Lidarr key from **Settings → General → Security**; get the SoulSync key from **Settings → SoulSync API**, allowing profile listing, search and Watchlist read/write. **Docker:** follow [DOCKER.md](DOCKER.md); run inside the Lidarr container.
 
+> **Important — let SoulSync handle downloads:** If SoulSync will manage your music downloads, disable Lidarr's downloading automation before using the bridge. In Lidarr, go to **Settings → Download Clients** and disable its download clients (or otherwise prevent Lidarr from sending downloads). This avoids duplicate downloads, competing imports and conflicts in your music library. Keep artist monitoring enabled if using the bridge's monitored-only mode, and leave the SoulSync Custom Script connection enabled for future sync. If you still use Lidarr to download other music, use separate libraries/workflows so the two apps do not manage the same files.
+
 ## 2. Run setup
 
 In the extracted folder, as the Lidarr service user:
