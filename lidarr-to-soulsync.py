@@ -24,7 +24,7 @@
 #
 # ==============================================================================
 
-"""Lidarr -> SoulSync Watchlist bridge v1.1.1. Python 3 standard library, Linux."""
+"""Lidarr -> SoulSync Watchlist bridge v1.1.2. Python 3 standard library, Linux."""
 import argparse
 import re
 import shlex

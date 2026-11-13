@@ -17,11 +17,11 @@ Replace `lidarr` with your actual container name throughout this guide. Python 3
 
 The following example uses a LinuxServer Lidarr container with service user `abc` and persistent configuration at `/config`. For a different image, use its actual Lidarr service user and AppData path (shown in Lidarr **System → Status**).
 
-On the Docker host, download and extract the release. You can also download and extract the ZIP manually, then use that folder instead of `$STAGE`.
+On the Docker host, download and extract the named installation ZIP (nine files), not GitHub's Source code ZIP. You can also download and extract the ZIP manually, then use that folder instead of `$STAGE`.
 
 ```sh
 STAGE=$(mktemp -d)
-curl -fL https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1.1/Lidarr-SoulSync-Bridge-v1.1.1.zip -o "$STAGE/bridge.zip"
+curl -fL https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/download/v1.1.2/Lidarr-SoulSync-Bridge-v1.1.2.zip -o "$STAGE/bridge.zip"
 unzip "$STAGE/bridge.zip" -d "$STAGE/files"
 ```
 

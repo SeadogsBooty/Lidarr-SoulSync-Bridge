@@ -33,3 +33,6 @@ backups/
 *.key
 credentials*
 secrets*
+
+# Generated installation release
+dist/

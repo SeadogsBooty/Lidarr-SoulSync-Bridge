@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2 — Simplified installation package
+
+- The downloadable installation ZIP now includes only the nine files required by the installer. Tests, workflows and development files remain in the repository and GitHub source archives.
+- Includes the redesigned quick-start README, without the ASCII signature; Python signatures are unchanged.
+- Clarifies direct extraction into Lidarr's AppData/scripts/soulsync or guided installation from a staging folder, with updated manual and Docker download instructions.
+- Adds reproducible release packaging from the installer's file list, archive/installation smoke tests, and a CI-gated release workflow. No artist-matching or synchronization behavior changes.
+
 ## 1.1.1 — Guided setup completes the selected workflow
 
 - Options 1 and 3 start the existing-library import preview immediately after configuration; choose all or individual artists and explicitly confirm before writing.

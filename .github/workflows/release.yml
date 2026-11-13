@@ -1,0 +1,80 @@
+name: Publish installation release
+
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installation-release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {python: '3.8', os: ubuntu-22.04}
+          - {python: '3.11', os: ubuntu-latest}
+          - {python: '3.13', os: ubuntu-latest}
+          - {python: '3.14', os: ubuntu-latest}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m py_compile *.py
+      - run: python -m unittest discover -v
+      - run: python build_release.py
+
+  publish:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build installation ZIP
+        run: python build_release.py
+      - name: Publish new version without modifying existing releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(cat VERSION)
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; no changes made."
+            exit 0
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists without a release; review it manually."
+            exit 1
+          fi
+          python - <<'PY'
+          from pathlib import Path
+          version = Path('VERSION').read_text().strip()
+          text = Path('CHANGELOG.md').read_text()
+          section = next(part for part in text.split('\n## ') if part.startswith(version + ' —'))
+          body = section.split('\n', 1)[1].strip()
+          Path('dist/release-notes.md').write_text(
+              '# Lidarr SoulSync Bridge v' + version + '\n\n' + body +
+              '\n\n## Install\nDownload the attached installation ZIP (not Source code), extract it where Lidarr runs, and follow README.md. The ZIP contains only the nine installer files; all tests and development files remain in the repository.\n'
+          )
+          PY
+          gh release create "$tag" "dist/Lidarr-SoulSync-Bridge-$tag.zip" \
+            --target "$GITHUB_SHA" \
+            --title "Lidarr SoulSync Bridge $tag" \
+            --notes-file dist/release-notes.md

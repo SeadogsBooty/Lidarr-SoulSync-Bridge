@@ -1,8 +1,8 @@
 # Manual installation (no wizard)
 
-[Download and extract the latest release](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/latest) first. Python 3.8+ must be installed where Lidarr runs. Get both API keys as described in the [README](README.md#1-download). If using Docker, first see [Docker setup](DOCKER.md). Use the Lidarr service user for all commands; on a native Linux install where that user is `lidarr`, you can enter its shell with `sudo -u lidarr -H sh`. Ensure the extracted files are readable by that user.
+[Download and extract the latest release](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/latest) first. Select the named installation ZIP under Assets, not GitHub's Source code ZIP. Python 3.8+ must be installed where Lidarr runs. Get both API keys as described in the [README](README.md#1-download). If using Docker, first see [Docker setup](DOCKER.md). Use the Lidarr service user for all commands; on a native Linux install where that user is `lidarr`, you can enter its shell with `sudo -u lidarr -H sh`. Ensure the extracted files are readable by that user.
 
-**1. Put the files in Lidarr.** In Lidarr, open **System → Status** and find its AppData directory. Create a `scripts/soulsync` folder there and copy the extracted ZIP files into it. Use your file manager or run the following from the extracted folder as the Lidarr service user:
+**1. Put the files in Lidarr.** In Lidarr, open **System → Status** and find its AppData directory. Create a `scripts/soulsync` folder there and copy the nine extracted installation ZIP files into it. The test suite and GitHub development files are not needed. Use your file manager or run the following from the extracted folder as the Lidarr service user:
 
 ```sh
 APPDATA="/path/to/lidarr-appdata"

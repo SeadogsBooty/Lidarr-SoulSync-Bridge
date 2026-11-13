@@ -22,6 +22,8 @@ Import your existing artists, sync new additions automatically, or do both. The 
 
 [**Download the latest ZIP**](https://github.com/SeadogsBooty/Lidarr-SoulSync-Bridge/releases/latest) and extract it on the machine running Lidarr.
 
+Under **Assets**, choose the file named `Lidarr-SoulSync-Bridge-v1.1.2.zip` (or the named installation ZIP for a newer release), not GitHub's **Source code** ZIP. The installation ZIP contains only the nine files needed for setup. You can extract them directly into Lidarr's `scripts/soulsync` folder or let the wizard install them for you.
+
 You'll need:
 
 - Lidarr and SoulSync running and reachable from Lidarr.
